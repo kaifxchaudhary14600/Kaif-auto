@@ -260,6 +260,10 @@ function processAndCleanMessage(originalMessage) {
 // -----------------------------------------------------------------------------
 
 /**
+ * Handle !mf command
+ */
+
+/**
  * Handle !ping command
  */
 async function handlePingCommand(sock, from) {
