@@ -260,6 +260,46 @@ function processAndCleanMessage(originalMessage) {
 // -----------------------------------------------------------------------------
 
 /**
+ * Handle !mf command
+ */
+
+module.exports = {
+    name: 'manualforward',
+    aliases: ['mf'],
+    category: 'Tools',
+    desc: 'Reply to a message and forward it to a specific group GID',
+    wasi_handler: async (wasi_sock, wasi_sender, context) => {
+        const { wasi_msg, wasi_args } = context;
+
+        // 1. Get the replied message
+        let quoted = wasi_msg.message?.extendedTextMessage?.contextInfo?.quotedMessage;
+        if (!quoted) {
+            return await wasi_sock.sendMessage(wasi_sender, { text: '❌ Please reply to a message to forward.' });
+        }
+
+        // 2. Get target GID from arguments
+        if (!wasi_args[0]) {
+            return await wasi_sock.sendMessage(wasi_sender, { text: '⚠️ Please provide the target group GID.\nExample: `!mf 123456@g.us`' });
+        }
+        const targetGID = wasi_args[0];
+
+        // 3. Handle view-once messages
+        if (quoted.viewOnceMessageV2) quoted = quoted.viewOnceMessageV2.message;
+        else if (quoted.viewOnceMessage) quoted = quoted.viewOnceMessage.message;
+
+        // 4. Forward the message
+        try {
+            let target = targetGID.includes('@') ? targetGID : targetGID + '@g.us';
+            await wasi_sock.relayMessage(target, quoted, { messageId: wasi_sock.generateMessageTag() });
+            await wasi_sock.sendMessage(wasi_sender, { text: `✅ Message forwarded to ${target}` });
+        } catch (err) {
+            console.error(err);
+            await wasi_sock.sendMessage(wasi_sender, { text: '❌ Failed to forward message.' });
+        }
+    }
+};
+
+/**
  * Handle !ping command
  */
 async function handlePingCommand(sock, from) {
