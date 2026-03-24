@@ -20,8 +20,6 @@ scripts/
 
 # Ops
 docker-compose.yml
-Dockerfile
-.dockerignore
 
 # Agent & Tools
 .agent/

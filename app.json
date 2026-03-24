@@ -5,7 +5,7 @@
   "repository": "",
   "logo": "https://i.ibb.co/d6bLQ7y/whatsapp-logo.png",
   "success_url": "/",
-  "stack": "heroku-22",
+  "stack": "heroku-24",
   "env": {
     "SESSION_ID": {
       "description": "Unique session ID for your bot",
@@ -17,6 +17,9 @@
     }
   },
   "buildpacks": [
+    {
+      "url": "heroku-community/apt"
+    },
     {
       "url": "heroku/nodejs"
     }
