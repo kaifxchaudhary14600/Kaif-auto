@@ -117,6 +117,9 @@ async function startSession(sessionId) {
     const { wasi_sock, saveCreds } = await wasi_connectSession(false, sessionId);
     sessionState.sock = wasi_sock;
 
+    // Register listeners immediately to avoid missing events
+    console.log(`📡 [${sessionId}] Socket created, listening for events...`);
+
     wasi_sock.ev.on('connection.update', async (update) => {
         const { connection, lastDisconnect, qr } = update;
 
@@ -240,23 +243,30 @@ async function startSession(sessionId) {
 // MAIN STARTUP
 // -----------------------------------------------------------------------------
 async function main() {
-    // 1. Load Core Commands
-    wasi_loadPlugins();
-
-    // 2. Connect Database
-    if (config.mongoDbUrl) {
-        const dbResult = await wasi_connectDatabase(config.mongoDbUrl);
-        if (dbResult) console.log('✅ Database connected');
-    }
-
-    // 3. Start default session
-    const sessionId = config.sessionId || 'wasi_session';
-    await startSession(sessionId);
-
-    // 4. Start Dashboard Server
+    // 1. Start Dashboard Server IMMEDIATELY (Prevents Heroku timeout)
     wasi_app.listen(wasi_port, () => {
         console.log(`🌐 Dashboard running on port ${wasi_port}`);
     });
+
+    // 2. Load Core Commands
+    wasi_loadPlugins();
+
+    // 3. Initialize Bot in Background
+    (async () => {
+        try {
+            // Connect Database
+            if (config.mongoDbUrl) {
+                const dbResult = await wasi_connectDatabase(config.mongoDbUrl);
+                if (dbResult) console.log('✅ Database connected');
+            }
+
+            // Start default session
+            const sessionId = config.sessionId || 'wasi_session';
+            await startSession(sessionId);
+        } catch (err) {
+            console.error('❌ Initialization Error:', err);
+        }
+    })();
 }
 
 main();
