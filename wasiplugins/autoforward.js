@@ -1,3 +1,5 @@
+// 🔥 GLOBAL AUTOFORWARD FINAL
+
 console.log("🔥 Global Autoforward Loaded");
 
 module.exports = (sock, sessionId) => {
@@ -9,6 +11,8 @@ module.exports = (sock, sessionId) => {
 
             const origin = msg.key.remoteJid;
 
+            console.log("📩 Message from:", origin);
+
             // 🧠 Load config (cache → DB)
             let globalCfg = _getCachedGlobalConfig(sessionId);
             if (!globalCfg) {
@@ -16,16 +20,37 @@ module.exports = (sock, sessionId) => {
                 if (globalCfg) _setCachedGlobalConfig(sessionId, globalCfg);
             }
 
-            if (!globalCfg?.enabled) return;
-            if (!globalCfg.sourceJids?.length || !globalCfg.targetJids?.length) return;
+            console.log("⚙️ Config:", globalCfg);
 
-            // ❌ Ignore non-source chats
-            if (!globalCfg.sourceJids.includes(origin)) return;
+            // ❌ Disabled
+            if (!globalCfg?.enabled) {
+                console.log("❌ AF Disabled");
+                return;
+            }
+
+            // ❌ Missing config
+            if (!globalCfg.sourceJids?.length || !globalCfg.targetJids?.length) {
+                console.log("❌ Missing source/target");
+                return;
+            }
+
+            // ❌ Not source
+            if (!globalCfg.sourceJids.includes(origin)) {
+                console.log("❌ Not in source list");
+                return;
+            }
+
+            console.log("✅ Source matched");
 
             // 🔄 Process message
             const relayMsg = processAndCleanMessage(msg.message, globalCfg);
-            if (!relayMsg) return;
 
+            if (!relayMsg) {
+                console.log("❌ relayMsg null");
+                return;
+            }
+
+            // 📦 Type check
             const isMedia =
                 relayMsg.imageMessage ||
                 relayMsg.videoMessage ||
@@ -37,14 +62,20 @@ module.exports = (sock, sessionId) => {
                 relayMsg.conversation ||
                 relayMsg.extendedTextMessage;
 
-            if (!isMedia && !isText) return;
+            if (!isMedia && !isText) {
+                console.log("❌ Unsupported message type");
+                return;
+            }
 
-            // 🚀 Forward globally
+            console.log("🚀 Forwarding...");
+
+            // 🚀 Forward (DIRECT SEND for testing)
             for (const jid of globalCfg.targetJids) {
                 try {
-                    forwardQueue.enqueue(sock, jid, relayMsg, origin);
+                    await sock.sendMessage(jid, relayMsg);
+                    console.log("✅ Sent to:", jid);
                 } catch (err) {
-                    console.error("❌ Forward error:", err);
+                    console.error("❌ Send error:", err);
                 }
             }
 
